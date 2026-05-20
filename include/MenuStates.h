@@ -57,7 +57,11 @@ protected:
     
 public:
     FunctionState(const char* title) : m_title(title) {}
+<<<<<<<< HEAD:include/MenuStates.h
      virtual ~FunctionState() {}
+========
+    virtual ~FunctionState() {}
+>>>>>>>> origin/main:0_Firmware/src/MenuStates.h
     
     // Shared implementation
     virtual void onEnter();

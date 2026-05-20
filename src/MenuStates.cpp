@@ -63,7 +63,11 @@ void MainMenuState::onEnter() {
     lv_obj_add_style(label, &style_font_28, 0);
 
     label = lv_label_create(m_mainMenu.screen);
+<<<<<<<< HEAD:src/MenuStates.cpp
      lv_label_set_text( label, FIRMWARE_VERSION );
+========
+    lv_label_set_text( label, FIRMWARE_VERSION );
+>>>>>>>> origin/main:0_Firmware/src/MenuStates.cpp
     lv_obj_align_to(label, m_mainMenu.screen, LV_ALIGN_TOP_RIGHT, -40, 38);
     lv_obj_set_style_text_color(label, lv_color_hex(0x808080), LV_PART_MAIN);
     lv_obj_add_style(label, &style_font_14, 0);
@@ -309,6 +313,7 @@ void MainMenuState::updateDisplay(DisplayContext* display) {
     lv_label_set_text(m_mainMenu.power, value);
 }
 
+<<<<<<<< HEAD:src/MenuStates.cpp
 // FunctionState implementation
 void FunctionState::onEnter() {
 
@@ -322,3 +327,18 @@ bool FunctionState::handleEvent(StateMachine* machine, const Event* event) {
 
     return false;
 }
+========
+// FunctionState实现
+void FunctionState::onEnter() {
+    // 默认实现，子类可以覆盖
+}
+
+void FunctionState::onExit() {
+    // 默认实现，子类可以覆盖
+}
+
+bool FunctionState::handleEvent(StateMachine* machine, const Event* event) {
+    // 默认实现，子类可以覆盖
+    return false;
+}
+>>>>>>>> origin/main:0_Firmware/src/MenuStates.cpp

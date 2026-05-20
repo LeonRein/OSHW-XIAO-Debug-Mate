@@ -140,7 +140,12 @@ void initINA228() {
 }
 
 void setup() {
+<<<<<<<< HEAD:src/main.cpp
     // Hardware initialization
+========
+    // 硬件初始化
+    ShowSerial.begin(FunctionBaudState::m_baudRate);
+>>>>>>>> origin/main:0_Firmware/examples/main/main.ino
     initSerial();
     initLED();
     initLVGL();

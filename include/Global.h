@@ -1,7 +1,11 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+<<<<<<<< HEAD:include/Global.h
 #define FIRMWARE_VERSION "v1.1"
+========
+#define FIRMWARE_VERSION "v1.2"
+>>>>>>>> origin/main:0_Firmware/src/Global.h
 
 #define BOOT_BTN 0
 #define ENCODER_PINA 18

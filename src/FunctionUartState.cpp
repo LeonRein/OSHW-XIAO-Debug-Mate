@@ -8,7 +8,9 @@ FunctionUartState::FunctionUartState()
       m_currentSelection(0),
       m_uartType(UartType::UART_TYPE_XIAO),
       m_uartStateUI(),
-      m_uartTask(nullptr)
+      m_uartTask(nullptr),
+      m_lastRxTime(0),
+      m_lastTxTime(0)
 {
     m_rxQueue = xQueueCreate(UART_DATA_SIZE, sizeof(char));
     m_txQueue = xQueueCreate(UART_DATA_SIZE, sizeof(char));
@@ -27,30 +29,50 @@ FunctionUartState::FunctionUartState()
 
 void FunctionUartState::uartTaskFunc(void* params) {
     FunctionUartState* uartState = static_cast<FunctionUartState*> (params);
+    const int BUFFER_SIZE = 256;
+    char buffer[BUFFER_SIZE];
 
     while (true) {
+        bool hasData = false;
+
         // RX, From XIAO to Debugger
-        if (COMSerial.available()) {
-            char c = COMSerial.read();
+        int rxAvail = COMSerial.available();
+        if (rxAvail > 0) {
+            uartState->m_lastRxTime = millis();
+            int count = (rxAvail < BUFFER_SIZE) ? rxAvail : BUFFER_SIZE;
+            int n = COMSerial.readBytes(buffer, count);
 
             if (uartState->m_isUartInfoDisplay) {
-                xQueueSendToBack(uartState->m_rxQueue, &c, 0);
+                for (int i = 0; i < n; i++) {
+                    xQueueSendToBack(uartState->m_rxQueue, &buffer[i], 0);
+                }
             } else {
-                ShowSerial.write(c);
+                ShowSerial.write(buffer, n);
             }
+            hasData = true;
         }
 
         // TX, From PC to XIAO
-        if (ShowSerial.available()) {
-            char c = ShowSerial.read();
+        int txAvail = ShowSerial.available();
+        if (txAvail > 0) {
+            uartState->m_lastTxTime = millis();
+            int count = (txAvail < BUFFER_SIZE) ? txAvail : BUFFER_SIZE;
+            int n = ShowSerial.readBytes(buffer, count);
 
-            COMSerial.write(c);
+            COMSerial.write(buffer, n);
             if (uartState->m_isUartInfoDisplay) {
-                xQueueSendToBack(uartState->m_txQueue, &c, 0);
+                for (int i = 0; i < n; i++) {
+                    xQueueSendToBack(uartState->m_txQueue, &buffer[i], 0);
+                }
             }
+            hasData = true;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(30));
+        if (hasData) {
+            vTaskDelay(pdMS_TO_TICKS(3));
+        } else {
+            vTaskDelay(pdMS_TO_TICKS(30));
+        }
     }
 }
 
@@ -339,12 +361,15 @@ bool FunctionUartState::handleEvent(StateMachine* machine, const Event* event)
 
 void FunctionUartState::updateLedEffect() {
     static int rxPos = 4, txPos = 0;
-    static int time = millis();
+    static uint32_t lastRxAnimTime = 0;
+    static uint32_t lastTxAnimTime = 0;
     int lastPos = 0;
 
     // RX, 4 -> 0, Light up from both sides to the middle
-    if (COMSerial.available()) {
-        if (millis() - time >= 300) {
+    if (millis() - m_lastRxTime < 1000) {
+        if (millis() - lastRxAnimTime >= 200) {
+            lastRxAnimTime = millis();
+            
             lv_led_on(m_uartStateUI.UartRxLedLeftList[rxPos]);
             lv_led_on(m_uartStateUI.UartRxLedRightList[rxPos]);
 
@@ -355,14 +380,19 @@ void FunctionUartState::updateLedEffect() {
             if (--rxPos < 0) rxPos = 4;
         }
     } else {
+        lv_led_off(m_uartStateUI.UartRxLedLeftList[rxPos]);
+        lv_led_off(m_uartStateUI.UartRxLedRightList[rxPos]);
+
         lastPos = (rxPos <= 3) ? (rxPos + 1) : 0;
         lv_led_off(m_uartStateUI.UartRxLedLeftList[lastPos]);
         lv_led_off(m_uartStateUI.UartRxLedRightList[lastPos]);
     }
 
     // TX, 0 -> 4, Light up from the middle to both sides
-    if (ShowSerial.available()) {
-        if (millis() - time >= 300) {
+    if (millis() - m_lastTxTime < 1000) {
+        if (millis() - lastTxAnimTime >= 200) {
+            lastTxAnimTime = millis();
+
             lv_led_on(m_uartStateUI.UartTxLedLeftList[txPos]);
             lv_led_on(m_uartStateUI.UartTxLedRightList[txPos]);
 
@@ -373,6 +403,9 @@ void FunctionUartState::updateLedEffect() {
             if (++txPos > 4) txPos = 0;
         }
     } else {
+        lv_led_off(m_uartStateUI.UartTxLedLeftList[txPos]);
+        lv_led_off(m_uartStateUI.UartTxLedRightList[txPos]);
+        
         lastPos = (txPos >= 1) ? (txPos - 1) : 4;
         lv_led_off(m_uartStateUI.UartTxLedLeftList[lastPos]);
         lv_led_off(m_uartStateUI.UartTxLedRightList[lastPos]);
